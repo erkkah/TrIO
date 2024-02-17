@@ -958,6 +958,15 @@ trio::IO &trio::IO::clear()
 trio::Point trio::IO::terminal_size() const
 {
 #if defined(WINDOWS)
+    static HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    int row = 0;
+    int col = 0;
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if (GetConsoleScreenBufferInfo(hConsole, &csbi)) {
+        row = csbi.dwSize.X;
+        col = csbi.dwSize.Y;
+    }
+    return Point(row, col);
 #else
     struct winsize size{0};
     ioctl(0, TIOCGWINSZ, &size);
@@ -968,6 +977,15 @@ trio::Point trio::IO::terminal_size() const
 trio::Point trio::IO::cursor() const
 {
 #if defined(WINDOWS)
+    static HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    int row = 0;
+    int col = 0;
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if (GetConsoleScreenBufferInfo(hConsole, &csbi)) {
+        row = csbi.dwCursorPosition.X;
+        col = csbi.dwCursorPosition.Y;
+    }
+    return Point(row, col);
 #else
     trio::IO::ScopedTerminalFlags flags;
 
