@@ -7,7 +7,7 @@ int main()
     trio::IO io;
 
     const auto ts = io.terminal_size();
-    io << "Running in window with " << ts.row << " rows, " << ts.col << " columns.\n";
+    io << "Running in terminal with " << ts.row << " rows, " << ts.col << " columns.\n";
 
     const auto cursor = io.cursor();
     io << "Cursor is currently at " << cursor.row << "x" << cursor.col << "\n";
