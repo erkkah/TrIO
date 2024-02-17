@@ -10,7 +10,7 @@ int main()
     io << "Running in terminal with " << ts.row << " rows, " << ts.col << " columns.\n";
 
     const auto cursor = io.cursor();
-    io << "Cursor is currently at " << cursor.row << "x" << cursor.col << "\n";
+    io << "Cursor is currently at row " << cursor.row << ", column " << cursor.col << "\n";
 
     // Print a rainbow alphabet
     io << "Testing colors with a Rainbow-Alphabet\n";
