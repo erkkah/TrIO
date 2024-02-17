@@ -213,6 +213,8 @@ namespace trio
         HANDLE stdout_terminal;
         inline void setupWindows();
 #else
+        // borrowed from anonymous stackoverflow user at
+        // https://stackoverflow.com/questions/421860/capture-characters-from-standard-input-without-waiting-for-enter-to-be-pressed
         struct ScopedTerminalFlags {
             ScopedTerminalFlags(/*tcflag_t flags*/) {
                 if (tcgetattr(0, &old) < 0)
@@ -646,9 +648,6 @@ trio::IO &trio::IO::operator>>(unsigned char &ch_var)
     // Restore the original console mode
     SetConsoleMode(stdin_terminal, mode);
 #else
-
-    // borrowed from anonymous stackoverflow user at
-    // https://stackoverflow.com/questions/421860/capture-characters-from-standard-input-without-waiting-for-enter-to-be-pressed
     char buf = 0;
     trio::IO::ScopedTerminalFlags flags;
     if (read(0, &buf, 1) < 0)
