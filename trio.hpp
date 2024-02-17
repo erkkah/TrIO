@@ -22,6 +22,7 @@
 // Include only for *nix
 #include <unistd.h>
 #include <termios.h>
+#include <sys/ioctl.h>
 #endif
 
 namespace trio
@@ -181,6 +182,11 @@ namespace trio
          */
         inline IO &clear();
 
+        // info operations
+
+        inline Point terminal_size() const;
+        inline Point cursor() const;
+
         // input operations
         /**
          * Gets a single character from stdin. Input is unbuffered, echoless,
@@ -206,6 +212,27 @@ namespace trio
         HANDLE stdin_terminal;
         HANDLE stdout_terminal;
         inline void setupWindows();
+#else
+        struct ScopedTerminalFlags {
+            ScopedTerminalFlags(/*tcflag_t flags*/) {
+                if (tcgetattr(0, &old) < 0)
+                    perror("tcsetattr()");
+                old.c_lflag &= ~ICANON;
+                old.c_lflag &= ~ECHO;
+                old.c_cc[VMIN] = 1;
+                old.c_cc[VTIME] = 0;
+                if (tcsetattr(0, TCSANOW, &old) < 0)
+                    perror("tcsetattr ICANON");
+            }
+            ~ScopedTerminalFlags() {
+                old.c_lflag |= ICANON;
+                old.c_lflag |= ECHO;
+                if (tcsetattr(0, TCSADRAIN, &old) < 0)
+                    perror("tcsetattr ~ICANON");
+            }
+            private:
+                struct termios old{0};
+        };
 #endif
     };
 } // namespace trio
@@ -623,21 +650,9 @@ trio::IO &trio::IO::operator>>(unsigned char &ch_var)
     // borrowed from anonymous stackoverflow user at
     // https://stackoverflow.com/questions/421860/capture-characters-from-standard-input-without-waiting-for-enter-to-be-pressed
     char buf = 0;
-    struct termios old = {0};
-    if (tcgetattr(0, &old) < 0)
-        perror("tcsetattr()");
-    old.c_lflag &= ~ICANON;
-    old.c_lflag &= ~ECHO;
-    old.c_cc[VMIN] = 1;
-    old.c_cc[VTIME] = 0;
-    if (tcsetattr(0, TCSANOW, &old) < 0)
-        perror("tcsetattr ICANON");
+    trio::IO::ScopedTerminalFlags flags;
     if (read(0, &buf, 1) < 0)
         perror("read()");
-    old.c_lflag |= ICANON;
-    old.c_lflag |= ECHO;
-    if (tcsetattr(0, TCSADRAIN, &old) < 0)
-        perror("tcsetattr ~ICANON");
     ch_var = buf;
 
 #endif
@@ -939,6 +954,39 @@ trio::IO &trio::IO::clear()
 {
     trio::clear_screen();
     return *this;
+}
+
+trio::Point trio::IO::terminal_size() const
+{
+#if defined(WINDOWS)
+#else
+    struct winsize size{0};
+    ioctl(0, TIOCGWINSZ, &size);
+    return Point(size.ws_row, size.ws_col);
+#endif
+}
+
+trio::Point trio::IO::cursor() const
+{
+#if defined(WINDOWS)
+#else
+    trio::IO::ScopedTerminalFlags flags;
+
+    std::cout << "\033[6n" << std::flush;
+    char c = 0;
+    int row = 0;
+    int col = 0;
+
+    std::cin >> c;
+    if (c == 27) {
+        std::cin >> c;
+        if (c == '[') {
+            std::cin >> row >> c >> col >> c;
+        }
+    }
+
+    return Point(row - 1, col - 1);
+#endif
 }
 
 #if defined(WINDOWS)

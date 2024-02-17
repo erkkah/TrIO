@@ -6,6 +6,12 @@ int main()
 {
     trio::IO io;
 
+    const auto ts = io.terminal_size();
+    io << "Running in window with " << ts.row << " rows, " << ts.col << " columns.\n";
+
+    const auto cursor = io.cursor();
+    io << "Cursor is currently at " << cursor.row << "x" << cursor.col << "\n";
+
     // Print a rainbow alphabet
     io << "Testing colors with a Rainbow-Alphabet\n";
     std::string s = "";
@@ -70,8 +76,8 @@ int main()
     for (int i = 0; i < 40; i++)
     {
         short fg = rand() % 8 + 1;
-        short row = rand() % 40;
-        short col = rand() % 80;
+        short row = rand() % ts.row;
+        short col = rand() % ts.col;
         io.sleep(100) << trio::Point(row, col) << trio::Color(fg, trio::BLACK) << 'X';
     }
     // Wait 3 seconds
